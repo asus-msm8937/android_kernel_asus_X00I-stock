@@ -2665,7 +2665,6 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		break;
 	case MDSS_EVENT_PANEL_OFF:
 		power_state = (int) (unsigned long) arg;
-		disable_esd_thread();
 		ctrl_pdata->ctrl_state &= ~CTRL_STATE_MDP_ACTIVE;
 		if (ctrl_pdata->off_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_blank(pdata, power_state);
@@ -4096,6 +4095,20 @@ static int mdss_dsi_parse_gpio_params(struct platform_device *ctrl_pdev,
 		"qcom,platform-bklight-en-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->bklt_en_gpio))
 		pr_info("%s: bklt_en gpio not specified\n", __func__);
+
+	ctrl_pdata->lcm_vsn= of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-vsn-gpio", 0);
+
+	if (!gpio_is_valid(ctrl_pdata->lcm_vsn))
+		pr_err("%s:%d, lcm_vsn gpio not specified\n",
+						__func__, __LINE__);
+
+	ctrl_pdata->lcm_vsp= of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-vsp-gpio", 0);
+
+	if (!gpio_is_valid(ctrl_pdata->lcm_vsp))
+		pr_err("%s:%d, lcm_vsp gpio not specified\n",
+						__func__, __LINE__);
 
 	ctrl_pdata->rst_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 			 "qcom,platform-reset-gpio", 0);

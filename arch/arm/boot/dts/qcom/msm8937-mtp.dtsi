@@ -210,7 +210,7 @@
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_truly_1080_vid>;
+	qcom,dsi-pref-prim-pan = <&dsi_ili9885_fhd_vid>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -219,6 +219,9 @@
 	qcom,platform-enable-gpio = <&tlmm 99 0>;
 	qcom,platform-reset-gpio = <&tlmm 60 0>;
 	qcom,platform-bklight-en-gpio = <&tlmm 98 0>;
+	qcom,platform-vsn-gpio = <&tlmm 45 0>;
+        qcom,platform-vsp-gpio = <&tlmm 46 0>;
+	qcom,regulator-ldo-mode;
 };
 
 &mdss_dsi1 {
@@ -232,6 +235,14 @@
 	qcom,platform-enable-gpio = <&tlmm 99 0>;
 	qcom,platform-reset-gpio = <&tlmm 60 0>;
 	qcom,platform-bklight-en-gpio = <&tlmm 98 0>;
+};
+
+&dsi_ili9885_fhd_vid {
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+
+&dsi_ili9881c_fhd_vid {
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
 &dsi_truly_1080_vid {
@@ -251,6 +262,10 @@
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 	qcom,mdss-dsi-pan-enable-dynamic-fps;
 	qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode_vfp";
+};
+
+&dsi_hx8394f_720p_video {
+	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
 /* PM8937 GPIO configuration */
