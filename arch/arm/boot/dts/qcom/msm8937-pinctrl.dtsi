@@ -1521,5 +1521,77 @@
 				drive-strength = <2>; /* 2 MA */
 			};
 		};
+		goodix_reset_reset: goodix_reset_reset {
+			mux {
+				pins = "gpio2";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio2";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				output-low;
+			};
+		};
+		goodix_reset_active: goodix_reset_active {
+			mux {
+				pins = "gpio2";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio2";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				output-high;
+			};
+		};
+		goodix_irq_active: goodix_irq_active {
+			mux {
+				pins = "gpio1";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio1";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				input-enable;
+			};
+		};
+		focal_reset_out0: focal_reset_out0 {
+			mux {
+				pins = "gpio2";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio2";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				output-low;
+			};
+		};
+		focal_reset_out1: goodix_reset_out1 {
+			mux {
+				pins = "gpio2";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio2";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				output-high;
+			};
+		};
+		focal_irq_active: focal_irq_active {
+			mux {
+				pins = "gpio1";
+				function = "gpio";
+			};
+			config {
+				pins = "gpio1";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				input-enable;
+			};
+		};
 	};
 };

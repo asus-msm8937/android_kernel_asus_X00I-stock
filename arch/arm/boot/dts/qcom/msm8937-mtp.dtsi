@@ -67,6 +67,40 @@
 		qcom,dig-vtg-min = <1800000>;
 		qcom,dig-vtg-max = <1800000>;
 	};
+	goodix_fp {
+		compatible = "goodix,fingerprint";
+		input-device-name = "gf5216";
+		interrupt-parent = <&tlmm>;
+		interrupts = <1 0x0>;
+
+		goodix,gpio_reset    = <&tlmm 2 0>;
+		goodix,gpio_irq      = <&tlmm 1 0>;
+
+		pinctrl-names = "goodixfp_reset_reset",
+				"goodixfp_reset_active",
+				"goodixfp_irq_active";
+
+		pinctrl-0 = <&goodix_reset_reset>;
+		pinctrl-1 = <&goodix_reset_active>;
+		pinctrl-2 = <&goodix_irq_active>;
+	};
+        focal_fp {
+		compatible = "focal,fingerprint";
+		input-device-name = "qwerty";
+		interrupt-parent = <&tlmm>;
+		interrupts = <1 0x0>;
+
+		focal,gpio_reset    = <&tlmm 2 0>;
+		focal,gpio_irq      = <&tlmm 1 0>;
+
+		pinctrl-names = "focalfp_reset_out1",
+				"focalfp_reset_out0",
+				"focalfp_irq_active";
+
+		pinctrl-0 = <&focal_reset_out1>;
+		pinctrl-1 = <&focal_reset_out0>;
+		pinctrl-2 = <&focal_irq_active>;
+	};
 };
 
 &blsp1_uart2 {
