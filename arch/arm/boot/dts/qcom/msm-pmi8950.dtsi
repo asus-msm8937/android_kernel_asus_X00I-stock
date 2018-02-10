@@ -663,6 +663,21 @@
 					regulator-name = "pon_spare_reg";
 				};
 			};
+			
+		   pmi8950_switch1: qcom,switch_1 {
+				label = "switch";
+				qcom,led-name = "led:switch_1";
+				qcom,default-led-trigger =
+						"switch1_trigger";
+				qcom,max-current = <1000>;
+				qcom,duration = <1280>;
+				qcom,id = <3>;
+				qcom,current = <625>;
+				reg0 {
+					regulator-name = "pon_spare_reg";
+				};
+			};
+			
 		};
 
 		pmi_haptic: qcom,haptic@c000 {
