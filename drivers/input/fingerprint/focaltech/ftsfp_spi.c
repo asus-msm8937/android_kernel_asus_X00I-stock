@@ -760,8 +760,8 @@ static int ftsfp_probe (
     struct ftsfp_dev *ftsfp_dev = &g_ftsfp_dev;
     int status = -EINVAL;
     unsigned long minor;
-    //int ret;
-//    struct regulator *vreg;
+    int ret;
+    struct regulator *vreg;
     FUNC_ENTRY();
 
     /* Initialize the driver data */
@@ -790,38 +790,40 @@ static int ftsfp_probe (
             goto error;
         ftsfp_dev->device_available = 1;
     */
-/*
-    vreg = regulator_get (&spi->dev, "vdd_ana");
+
+    /*power on by zengfanjun start*/
+    vreg = regulator_get (&pdev->dev, "vdd");
 
     if (!vreg)
     {
-        dev_err (&ftsfp_dev->spi->dev, "Unable to get vdd_ana\n");
-        goto error;
+	printk("Unable to get vdd\n");
+	goto error;
     }
 
     if (regulator_count_voltages (vreg) > 0)
     {
-        ret = regulator_set_voltage (vreg, 2800000, 2800000);
+	ret = regulator_set_voltage (vreg, 2800000, 2800000);
 
-        if (ret)
-        {
-            dev_err (&ftsfp_dev->spi->dev, "Unable to set voltage on vdd_ana");
-            goto error;
-        }
+	if (ret)
+	{
+	    printk("Unable to set voltage on vdd\n");
+	    goto error;
+	}
     }
 
     ret = regulator_enable (vreg);
 
     if (ret)
     {
-        dev_err (&ftsfp_dev->spi->dev, "error enabling vdd_ana %d\n", ret);
-        regulator_put (vreg);
-        vreg = NULL;
-        goto error;
+	printk("error enabling vdd\n");
+	regulator_put (vreg);
+	vreg = NULL;
+	goto error;
     }
 
-    dev_info ( && ftsfp_dev->spi->dev, "Set voltage on vdd_ana for focaltech fingerprint");
-*/
+    printk("Set voltage on vdd_ana for focaltech fingerprint\n");
+    /*power on by zengfanjun end*/
+
 
     /* If we can allocate a minor number, hook up this device.
      * Reusing minors is fine so long as udev or mdev is working.
@@ -914,7 +916,6 @@ static int ftsfp_probe (
 
     return status;
 
-#if 0
 error:
     ftsfp_cleanup (ftsfp_dev);
     ftsfp_dev->device_available = 0;
@@ -937,7 +938,7 @@ ftsfp_probe_spi_clk_init_failed:
         if (ftsfp_dev->input != NULL)
         { input_unregister_device (ftsfp_dev->input); }
     }
-#endif
+
     FUNC_EXIT();
     return status;
 }
