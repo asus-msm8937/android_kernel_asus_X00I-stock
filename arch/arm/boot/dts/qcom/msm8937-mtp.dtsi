@@ -97,6 +97,7 @@
 		interrupt-parent = <&tlmm>;
 		interrupts = <1 0x0>;
 
+                vdd-supply = <&pm8937_l10>;
 		focal,gpio_reset    = <&tlmm 2 0>;
 		focal,gpio_irq      = <&tlmm 1 0>;
 
