@@ -10,6 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define HQ_HARDWARE_BOARD_V3 1
 
 &soc {
 	tlmm: pinctrl@1000000 {
@@ -20,8 +21,13 @@
 		#gpio-cells = <2>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
+		
+#if HQ_HARDWARE_BOARD_V3
+    #include "msm8917-camera-pinctrl-boardv3.dtsi" 
+#else
+    #include "msm8917-camera-pinctrl.dtsi"
+#endif
 
-#include "msm8917-camera-pinctrl.dtsi"
 
 		/* add pingrp for touchscreen */
 		pmx_ts_int_active {

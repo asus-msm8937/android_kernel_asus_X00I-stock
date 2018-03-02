@@ -10,9 +10,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define HQ_HARDWARE_BOARD_V3  1
 
 #include "msm8917-pinctrl.dtsi"
-#include "msm8917-camera-sensor-mtp.dtsi"
+/******************* yinyapeng add to adapt to board v3 **************************/
+#if HQ_HARDWARE_BOARD_V3 
+    #include "msm8917-camera-sensor-mtp-boardv3.dtsi"
+#else
+    #include "msm8917-camera-sensor-mtp.dtsi"
+#endif
 
 &spi_3 { /* BLSP1 QUP3 */
 	spi-max-frequency = <16000000>;
