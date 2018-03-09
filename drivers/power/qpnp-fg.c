@@ -2823,17 +2823,7 @@ static struct proc_dir_entry *limit_entry = NULL;
 #define CHARGER_LIMIT_PROC_FILE     "driver/charger_limit"
 #define CHARGE_LIMIT_DELAY_MS  5000   //5S
 
- ssize_t charger_limit_enbale_read_proc(struct file *file, char __user *page, size_t size, loff_t *ppos)
-{
-	char *ptr = page;
-	if (*ppos)  // CMD call again
-		return 0;
-
-	ptr += sprintf(ptr, "%d\n", charger_limit_enbale);
-
-	*ppos += ptr - page;
-	return (ptr - page);
-}
+ 
 struct fg_chip *limit_chip = NULL;
 
 static ssize_t charger_limit_enbale_write_proc(struct file *file, const char __user *buff, size_t size, loff_t *ppos)
@@ -2869,25 +2859,32 @@ static ssize_t charger_limit_enbale_write_proc(struct file *file, const char __u
 	return size;
 }
 
-static const struct file_operations charger_limit_enbale_proc_ops = {
-    .read = charger_limit_enbale_read_proc,
-    .write = charger_limit_enbale_write_proc,
-};
 
 
- ssize_t charger_limit_read_proc(struct file *file, char __user *page, size_t size, loff_t *ppos)
+static int charger_limit_enbale_show(struct seq_file *seq, void *v)
 {
-	char *ptr = page;
-	if (*ppos)  // CMD call again
-		return 0;
-	
-	printk("byr_: %s, charger_limit = %s\n", __func__, charger_limit);
 
-	ptr += sprintf(ptr, "%s\n", charger_limit);
-
-	*ppos += ptr - page;
-	return (ptr - page);
+        seq_printf(seq, "%d\n",charger_limit_enbale);
+	return 0;
 }
+
+
+
+static int charger_limit_enbale_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, charger_limit_enbale_show,NULL);
+}
+
+
+
+
+static const struct file_operations charger_limit_enbale_proc_ops = {
+    .open = charger_limit_enbale_open,
+    .read =  seq_read, 
+    .write = charger_limit_enbale_write_proc,
+    .llseek		= seq_lseek,
+    .release	= single_release,
+};
 
 static ssize_t charger_limit_write_proc(struct file *file, const char __user *buff, size_t size, loff_t *ppos)
 {
@@ -2915,9 +2912,31 @@ static ssize_t charger_limit_write_proc(struct file *file, const char __user *bu
 	return size;
 }
 
+
+
+static int charger_limit_show(struct seq_file *seq, void *v)
+{
+
+        seq_printf(seq, "%s\n",charger_limit);
+	return 0;
+}
+
+
+
+static int charger_limit_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, charger_limit_show,NULL);
+}
+
+
+
 static const struct file_operations charger_limit_proc_ops = {
-    .read = charger_limit_read_proc,
+//    .read = charger_limit_read_proc,
     .write = charger_limit_write_proc,
+     .open = charger_limit_open,
+    .read =  seq_read, 
+    .llseek		= seq_lseek,
+    .release	= single_release,
 };
 
 
