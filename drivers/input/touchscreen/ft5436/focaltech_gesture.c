@@ -134,34 +134,61 @@ static struct attribute_group fts_gesture_group = {
     .attrs = fts_gesture_mode_attrs,
 };
 
-static ssize_t fts_gesture_mode_get_proc(struct file *file, char __user *buffer,
-                                         size_t size, loff_t *ppos)
+static ssize_t fts_gesture_mode_get_proc(struct file *file,
+                        char *buffer, size_t size, loff_t *ppos)
 {
-    char *ptr = buffer;
+    char *page = NULL;
+    char *ptr = NULL;
+    int len, err = -1;
+	
+	if(*ppos) {
+        return 0;
+    }
+    mutex_lock(&fts_input_dev->mutex);
+    page = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page) {
+        kfree(page);
+        return -ENOMEM;
+    }
 
-    if(*ppos) {
+    ptr = page;
+
+    ptr += sprintf(ptr, "%d\n", (fts_gesture_data.mode == 0)?0:1);
+
+    len = ptr - page;
+    if (*ppos >= len) {
+        kfree(page);
         return 0;
     }
 
-    mutex_lock(&fts_input_dev->mutex);
-    ptr += sprintf(ptr, "%d\n", (fts_gesture_data.mode == 0)?0:1);
-
-    *ppos += ptr - buffer;
-
-    mutex_unlock(&fts_input_dev->mutex);
-    return (ptr - buffer);
+    err = copy_to_user(buffer, (char *)page, len);
+    *ppos += len;
+    if (err) {
+        kfree(page);
+        return err;
+    }
+    kfree(page);
+	mutex_unlock(&fts_input_dev->mutex);
+    return len;
 }
+
 
 static ssize_t fts_gestrue_mode_set_proc(struct file *filp,
                         const char __user *buffer, size_t count, loff_t *off)
 {
+
+    char wtire_data[8] = {0};
+	
     mutex_lock(&fts_input_dev->mutex);
 
-    if (FTS_SYSFS_ECHO_ON(buffer)) {
+    if (copy_from_user( &wtire_data, buffer, count ))
+        return -EFAULT;
+
+    if(wtire_data[0] == '1') {
         FTS_INFO("[GESTURE]enable gesture");
         fts_gesture_data.mode = ENABLE;
     }
-    else if (FTS_SYSFS_ECHO_OFF(buffer)) {
+    else if(wtire_data[0] == '0'){
         FTS_INFO("[GESTURE]disable gesture");
         fts_gesture_data.mode = DISABLE;
     }
@@ -170,6 +197,7 @@ static ssize_t fts_gestrue_mode_set_proc(struct file *filp,
 
     return count;
 }
+
 
 /************************************************************************
 * Name: fts_gesture_show

@@ -1783,16 +1783,21 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
 
 }
 
-static ssize_t gt91xx_config_read_proc(struct file *file, char __user *page, size_t size, loff_t *ppos)
+static ssize_t gt91xx_config_read_proc(struct file *file, char *buffer, size_t size, loff_t *ppos)
 {
-    char *ptr = page;
+    char *page = NULL;
+    char *ptr = NULL;
     char temp_data[GTP_CONFIG_MAX_LENGTH + 2] = {0x80, 0x47};
-    int i;
-    
-    if (*ppos)
-    {
-        return 0;
+    int i, len, err = -1;
+
+    page = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page) {
+        kfree(page);
+        return -ENOMEM;
     }
+
+    ptr = page;
+
     ptr += sprintf(ptr, "==== GT9XX config init value====\n");
 
     for (i = 0 ; i < GTP_CONFIG_MAX_LENGTH ; i++)
@@ -1814,8 +1819,20 @@ static ssize_t gt91xx_config_read_proc(struct file *file, char __user *page, siz
         if (i % 8 == 7)
             ptr += sprintf(ptr, "\n");
     }
-    *ppos += ptr - page;
-    return (ptr - page);
+    len = ptr - page;
+    if (*ppos >= len) {
+        kfree(page);
+        return 0;
+    }
+
+    err = copy_to_user(buffer, (char *)page, len);
+    *ppos += len;
+    if (err) {
+        kfree(page);
+        return err;
+    }
+    kfree(page);
+    return len;
 }
 
 static ssize_t gt91xx_config_write_proc(struct file *filp, const char __user *buffer, size_t count, loff_t *off)
@@ -1848,31 +1865,52 @@ static ssize_t gt91xx_config_write_proc(struct file *filp, const char __user *bu
 
 #if GTP_GESTURE_WAKEUP
 static ssize_t gt9xx_gesture_mode_get_proc(struct file *file,
-                        char __user *buffer, size_t size, loff_t *ppos)
+                        char *buffer, size_t size, loff_t *ppos)
 {
     struct goodix_ts_data *ts = NULL;
-    char * ptr = buffer;
+    char *page = NULL;
+    char *ptr = NULL;
+    int len, err = -1;
 
-    if(*ppos) {
-        return 0;
+    page = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (!page) {
+        kfree(page);
+        return -ENOMEM;
     }
+
+    ptr = page;
 
     ts = (struct goodix_ts_data *)i2c_get_clientdata(i2c_connect_client);
 
     ptr += sprintf(ptr, "%d\n", (ts->gesture_mode_switch == 0)?0:1);
 
-    *ppos += ptr - buffer;
-    return (ptr - buffer);
+    len = ptr - page;
+    if (*ppos >= len) {
+        kfree(page);
+        return 0;
+    }
+
+    err = copy_to_user(buffer, (char *)page, len);
+    *ppos += len;
+    if (err) {
+        kfree(page);
+        return err;
+    }
+    kfree(page);
+    return len;
 }
 
 static ssize_t gt9xx_gesture_mode_set_proc(struct file *filp,
                         const char __user *buffer, size_t count, loff_t *off)
 {
     struct goodix_ts_data *ts = NULL;
+    char wtire_data[8] = {0};
 
     ts = (struct goodix_ts_data *)i2c_get_clientdata(i2c_connect_client);
+    if (copy_from_user( &wtire_data, buffer, count ))
+        return -EFAULT;
 
-    if(strncmp(buffer, "0", 1) == 0) {
+    if(wtire_data[0] == '0') {
         ts->gesture_mode_switch = 0;
         GTP_INFO("Set gesture mode OFF\n");
     }
