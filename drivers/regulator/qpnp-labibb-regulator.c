@@ -2441,8 +2441,8 @@ static int register_qpnp_ibb_regulator(struct qpnp_labibb *labibb,
 		return -EINVAL;
 	}
 
-	rc = qpnp_labibb_write(labibb, labibb->ibb_base +
-			REG_IBB_SOFT_START_CTL, &val, 1);
+	//rc = qpnp_labibb_write(labibb, labibb->ibb_base +
+			//REG_IBB_SOFT_START_CTL, &val, 1);
 	if (rc) {
 		pr_err("qpnp_labibb_write register %x failed rc = %d\n",
 			REG_IBB_SOFT_START_CTL, rc);
