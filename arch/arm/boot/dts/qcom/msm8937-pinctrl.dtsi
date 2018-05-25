@@ -1269,7 +1269,6 @@
 				pins = "gpio2";
 				function = "gpio";
 			};
-
 			config {
 				pins = "gpio2";
 				drive-strength = <2>;
@@ -1279,10 +1278,9 @@
 		};
 		goodix_reset_active: goodix_reset_active {
 			mux {
-				pins = "gpio62";
+				pins = "gpio2";
 				function = "gpio";
 			};
-
 			config {
 				pins = "gpio2";
 				drive-strength = <2>;
@@ -1292,37 +1290,33 @@
 		};
 		goodix_irq_active: goodix_irq_active {
 			mux {
-				pins = "gpio62";
+				pins = "gpio1";
 				function = "gpio";
 			};
-
 			config {
 				pins = "gpio1";
 				drive-strength = <2>;
 				bias-disable = <0>;
 				input-enable;
 			};
-
 		};
-
 		focal_reset_out0: focal_reset_out0 {
 			mux {
-				pins = "gpio38","gpio50";
+				pins = "gpio2";
 				function = "gpio";
 			};
-
 			config {
-				pins = "gpio38","gpio50";
-				bias-disable; /* No PULL */
-				drive-strength = <2>; /* 2 MA */
+				pins = "gpio2";
+				drive-strength = <2>;
+				bias-disable = <0>;
+				output-low;
 			};
 		};
 		focal_reset_out1: goodix_reset_out1 {
 			mux {
-				pins = "gpio38","gpio50";
+				pins = "gpio2";
 				function = "gpio";
 			};
-
 			config {
 				pins = "gpio2";
 				drive-strength = <2>;
@@ -1342,5 +1336,6 @@
 				input-enable;
 			};
 		};
+
 	};
 };
