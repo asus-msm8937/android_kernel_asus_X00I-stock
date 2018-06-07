@@ -268,7 +268,7 @@
 		qcom,mdss-dsi-panel-status-check-mode   = "reg_read";
 		qcom,mdss-dsi-panel-status-read-length  = <1 3>;
 		qcom,mdss-dsi-panel-status-valid-params = <1 3>;
-		qcom,mdss-dsi-panel-status-value        = <0x9C 0x80 0x03 0x06>;
+		qcom,mdss-dsi-panel-status-value        = <0x9C 0x81 0x83 0x06>;
 		qcom,mdss-dsi-panel-max-error-count     = <3>;
 
 		//qcom,mdss-dsi-tx-eot-append;
