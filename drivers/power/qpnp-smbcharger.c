@@ -1568,8 +1568,8 @@ static int smbchg_set_dc_current_max(struct smbchg_chip *chip, int current_ma)
 	chip->dc_max_current_ma = chip->tables.dc_ilim_ma_table[i];
 	dc_cur_val = i & DCIN_INPUT_MASK;
 
-	pr_smb(PR_STATUS, "dc current set to %d mA\n",
-			chip->dc_max_current_ma);
+	printk("i=%d, dc_cur_val=%d,dc current set to %d mA\n",
+			i, dc_cur_val, chip->dc_max_current_ma);
 	return smbchg_sec_masked_write(chip, chip->dc_chgpth_base + IL_CFG,
 				DCIN_INPUT_MASK, dc_cur_val);
 }
@@ -1980,7 +1980,7 @@ static int smbchg_set_fastchg_current_raw(struct smbchg_chip *chip,
 		dev_err(chip->dev, "cannot write to fcc cfg rc = %d\n", rc);
 		return rc;
 	}
-	pr_smb(PR_STATUS, "fastcharge current requested %d, set to %d\n",
+	printk("fastcharge current requested %d, set to %d\n",
 			current_ma, chip->tables.usb_ilim_ma_table[cur_val]);
 
 	chip->fastchg_current_ma = chip->tables.usb_ilim_ma_table[cur_val];
@@ -5106,6 +5106,18 @@ static void asus_charger_id_detected(struct smbchg_chip *chip)
                smbchg_set_dc_current_max(chip,2000);
 		vote(chip->usb_icl_votable, PSY_ICL_VOTER, true, 2000);
 		printk("byr_id charger is Asus PB 5V/2A  set  2A \n");
+       }else if(vdm_1 > 500000) {
+		if ((vdm_2 > 1300000) && (vdm_2 < 1500000)) {
+		               smbchg_set_fastchg_current_raw(chip,2000);
+			       smbchg_set_dc_current_max(chip,2000);
+				vote(chip->usb_icl_votable, PSY_ICL_VOTER, true, 2000);
+				printk("apply asus zenpower adapter 5v 2A!\n");
+		} else {
+                       smbchg_set_fastchg_current_raw(chip,1000);
+                       smbchg_set_dc_current_max(chip,1000);
+			vote(chip->usb_icl_votable, PSY_ICL_VOTER, true, 1000);
+			printk("byr_id charger is other 5V/1A  set  1A \n");
+		}
        }else{
 		smbchg_set_fastchg_current_raw(chip,1000);
                smbchg_set_dc_current_max(chip,1000);
