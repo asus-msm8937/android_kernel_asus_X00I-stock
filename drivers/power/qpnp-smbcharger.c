@@ -426,6 +426,8 @@ enum wake_reason {
 
 static int smbchg_debug_mask = 0;
 
+int br_countrycode_flag = 0;
+
 struct asus_otg_mode_ctrl {
     int asus_otg_enable ;	
 	struct device *dev;
@@ -5086,7 +5088,10 @@ static void handle_usb_insertion(struct smbchg_chip *chip)
 	printk("byr_id usb_type_name %s usb_supply_type %d\n",usb_type_name,usb_supply_type);
 	if(usb_supply_type==POWER_SUPPLY_TYPE_USB_DCP && !is_br)
 	{
-		asus_charger_id_detected(chip);
+		if (!br_countrycode_flag) {
+			printk("use asus adapter detection algo except BR CountryCode!\n");
+			asus_charger_id_detected(chip);
+		}
 	}
 #ifdef GTP
 
@@ -7102,8 +7107,22 @@ static DEVICE_ATTR(asus_otg_enable,0664, asus_otg_enable_show, asus_otg_enable_s
 
 /*    byr add end -----------------------------------------------------------------------    */
 
+static ssize_t br_countrycode_flag_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
 
+	return sprintf(buf, "%d\n", br_countrycode_flag);
+}
+static ssize_t br_countrycode_flag_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	sscanf(buf ,"%d", &br_countrycode_flag);
 
+	return size;
+}
+
+static DEVICE_ATTR(br_countrycode_flag, 0664, br_countrycode_flag_show, br_countrycode_flag_store);
 
 
 /**
@@ -8857,6 +8876,8 @@ static int smbchg_probe(struct spmi_device *spmi)
     if (device_create_file(otg_class.dev, &dev_attr_asus_otg_enable) < 0)
         pr_err("Failed to create device file(%s)!\n", dev_attr_asus_otg_enable.attr.name);
 
+	if (device_create_file(otg_class.dev, &dev_attr_br_countrycode_flag) < 0)
+        pr_err("Failed to create device file(%s)!\n", dev_attr_br_countrycode_flag.attr.name);
 	
 	return 0;
 
