@@ -3127,39 +3127,40 @@ static int update_usb_connector_state(struct fg_chip *chip)
 		}
 		else if(is_usb_present(chip)) {
 			pr_info("[USB_STATE] the usb state is 1\n");
-		if(charge_disable == 1)
-			pr_info("[USB_STATE] As the charger limit work start,no need to disable charging again\n");
-		else
-		{
-			pr_info("[USB_STATE] we should disable charging\n");
-			//fg_smbchg_charging_en(0);
-			ret = fg_smbchg_usb_suspend(true);
-			if (ret) {
-				pr_err("couldn't disable charging %d\n", ret);
-				return ret;
+			if(charge_disable == 1)
+				pr_info("[USB_STATE] As the charger limit work start,no need to disable charging again\n");
+			else
+			{
+				pr_info("[USB_STATE] we should disable charging\n");
+				//fg_smbchg_charging_en(0);
+				ret = fg_smbchg_usb_suspend(true);
+				if (ret) {
+					pr_err("couldn't disable charging %d\n", ret);
+					return ret;
+				}
 			}
 		}
-	}
-	else
+		else
 			no_need_resume_charging = false;
 	}
 #if 1
 	else
 	{	
 		if(is_usb_present(chip)) {
-			pr_info("[USB_STATE] the usb state is 0\n");
-		if(charge_disable == 1)
-			pr_info("[USB_STATE] As the charger limit work start,should not recovery charging\n");
-		else
-		{
+			pr_info("[USB_STATE] the usb state is 1\n");
+			if(charge_disable == 1)
+				pr_info("[USB_STATE] As the charger limit work start,should not recovery charging\n");
+			else
+			{
 				if(no_need_resume_charging == false) {
-			pr_info("[USB_STATE] we should recovery charging\n");
+					pr_info("[USB_STATE] we should recovery charging\n");
 					//fg_smbchg_charging_en(1);
 					ret = fg_smbchg_usb_suspend(false);
 					if (ret) {
 						pr_err("couldn't recovery charging %d\n", ret);
 						return ret;
 					}
+					fg_smbchg_charging_en(1);
 				}
 			}
 		}
