@@ -49,6 +49,9 @@
 
 #include <linux/msm-bus.h>
 
+#include <linux/kprobes.h>
+#include <asm/traps.h>
+
 #define MSM_USB_BASE	(motg->regs)
 #define MSM_USB_PHY_CSR_BASE (motg->phy_csr_regs)
 
@@ -1806,6 +1809,8 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 	/* Save bc1.2 max_curr if type-c charger later moves to diff mode */
 	motg->bc1p2_current_max = mA;
 
+	dump_stack();
+
 	/*
 	 * Limit type-c charger current to 500 for SDP charger to avoid more
 	 * current drawn than 500 with Hosts that don't support type C due to
@@ -2619,6 +2624,7 @@ state_detected:
 	queue_delayed_work(motg->otg_wq, &motg->chg_work, delay);
 }
 
+#define DPDM_CHECK_MAX_COUNT 5
 static void msm_chg_check_dcd_flchg(struct msm_otg *motg)
 {
 	enum floated_chg_type floated_chg = motg->pdata->enable_floated_charger;
@@ -2653,6 +2659,27 @@ static void msm_chg_check_dcd_flchg(struct msm_otg *motg)
 			check_dcd, motg->chg_type);
 	pm_runtime_mark_last_busy(otg->phy->dev);
 	pm_runtime_put_autosuspend(otg->phy->dev);
+
+	if (check_dcd == 0 && motg->dpdm_check_count <= DPDM_CHECK_MAX_COUNT) {
+		//dp/dm float status check
+		motg->chg_type = USB_SDP_CHARGER;
+		motg->chg_state = USB_CHG_STATE_DETECTED;
+		motg->dpdm_check_count++;
+		pr_err("%s:check_dcd = %d, dpdm_check_count = %d\n",
+			__func__, check_dcd, motg->dpdm_check_count);
+		return;
+	}
+
+	motg->dpdm_check_count = 0;
+	if (check_dcd == 0) {
+		power_supply_set_supply_type(&motg->usb_psy,
+							POWER_SUPPLY_TYPE_USB_DCP);
+		motg->chg_type = USB_PROPRIETARY_CHARGER;
+		motg->chg_state = USB_CHG_STATE_DETECTED;
+	} else if (check_dcd == 1) {
+		motg->chg_type = USB_SDP_CHARGER;
+		pr_err("%s: valid linestate:%x\n", __func__, check_dcd);
+	}
 
 }
 
@@ -2882,7 +2909,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 					/* fall through */
 				case USB_PROPRIETARY_CHARGER:
 					msm_otg_notify_charger(motg,
-							dcp_max_current);
+							PROPRIETARY_CHG_MAX);
 					if (!motg->is_ext_chg_dcp)
 						otg->phy->state =
 							OTG_STATE_B_CHARGER;
@@ -2908,6 +2935,11 @@ static void msm_otg_sm_work(struct work_struct *w)
 					if (motg->chg_type !=
 						USB_SDP_CHARGER) {
 						work = 1;
+						break;
+					} else if (motg->chg_type == USB_SDP_CHARGER && motg->dpdm_check_count != 0) {
+						msleep(500);
+						work = 1;
+						otg->phy->state = OTG_STATE_B_IDLE;
 						break;
 					}
 					msm_otg_dbg_log_event(

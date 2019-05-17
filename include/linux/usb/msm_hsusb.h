@@ -120,6 +120,7 @@ enum msm_usb_phy_type {
 	QUSB_ULPI_PHY,
 };
 
+#define PROPRIETARY_CHG_MAX 500
 #define IDEV_CHG_MAX	1500
 #define IUNIT		100
 #define IDEV_HVDCP_CHG_MAX	1800
@@ -577,6 +578,7 @@ struct msm_otg {
 	int pm_qos_latency;
 	struct pm_qos_request pm_qos_req_dma;
 	struct delayed_work perf_vote_work;
+	unsigned int dpdm_check_count;
 };
 
 struct ci13xxx_platform_data {
