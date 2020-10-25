@@ -22,6 +22,20 @@
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
+#include <linux/proc_fs.h>
+#include <linux/kernel.h>
+#include <linux/string.h>
+#include <asm/uaccess.h>
+#include <linux/slab.h>
+
+#define AUSU_FLASHLIGHT_ADJUST_PROC_SUPPORT
+
+#ifdef AUSU_FLASHLIGHT_ADJUST_PROC_SUPPORT 
+  #define ASUS_TORCHLIGHT_FILE_NODE	"driver/asus_flash_brightness"
+  #define ASUS_FLASHLIGHT_STATUS_NODE "driver/flash_status"
+  static struct msm_flash_ctrl_t *asus_flash_ctrl = NULL;
+  static unsigned int flashlight_status = 0;
+#endif
 DEFINE_MSM_MUTEX(msm_flash_mutex);
 
 static struct v4l2_file_operations msm_flash_v4l2_subdev_fops;
@@ -599,6 +613,9 @@ static int32_t msm_flash_low(
 		if (flash_ctrl->flash_trigger[i])
 			led_trigger_event(flash_ctrl->flash_trigger[i], 0);
 
+     if (flash_ctrl->switch_trigger)
+		led_trigger_event(flash_ctrl->switch_trigger, 0);
+		
 	/* Turn on flash triggers */
 	for (i = 0; i < flash_ctrl->torch_num_sources; i++) {
 		if (flash_ctrl->torch_trigger[i]) {
@@ -636,6 +653,9 @@ static int32_t msm_flash_high(
 		if (flash_ctrl->torch_trigger[i])
 			led_trigger_event(flash_ctrl->torch_trigger[i], 0);
 
+     if (flash_ctrl->switch_trigger)
+		led_trigger_event(flash_ctrl->switch_trigger, 0);
+		
 	/* Turn on flash triggers */
 	for (i = 0; i < flash_ctrl->flash_num_sources; i++) {
 		if (flash_ctrl->flash_trigger[i]) {
@@ -663,6 +683,12 @@ static int32_t msm_flash_release(
 	struct msm_flash_ctrl_t *flash_ctrl)
 {
 	int32_t rc = 0;
+	CDBG("\n[flash]Enter\n");
+	if (flash_ctrl->flash_state == MSM_CAMERA_FLASH_RELEASE) {
+		pr_err("%s:%d Invalid flash state = %d",
+			__func__, __LINE__, flash_ctrl->flash_state);
+		return 0;
+	}
 
 	rc = flash_ctrl->func_tbl->camera_flash_off(flash_ctrl, NULL);
 	if (rc < 0) {
@@ -1131,6 +1157,162 @@ static long msm_flash_subdev_fops_ioctl(struct file *file,
 	return video_usercopy(file, cmd, arg, msm_flash_subdev_do_ioctl);
 }
 #endif
+/* create proc node for asus */
+#ifdef AUSU_FLASHLIGHT_ADJUST_PROC_SUPPORT 
+static ssize_t asus_flash_status_fops_read(struct file *file, char __user * page, size_t size, loff_t * ppos)
+{
+	int rc = 0;
+	char buf[4] = {0};
+	//struct msm_flash_ctrl_t *fctrl = asus_flash_ctrl;
+	//uint32_t max_current = 0, op_current = 0;
+
+	snprintf(buf, 4,"%d \n", flashlight_status);
+	rc = simple_read_from_buffer(page, size, ppos, buf, strlen(buf));
+
+	return rc;
+}
+
+static ssize_t asus_flash_touchlight_file_read(struct file *file, char __user * page, size_t size, loff_t * ppos)
+{
+	int rc = 0;
+	char buf[50] = {0};
+	struct msm_flash_ctrl_t *fctrl = asus_flash_ctrl;
+	uint32_t max_current = 0, op_current = 0;
+
+	if (!fctrl)
+		return -EPROBE_DEFER;
+
+	max_current = fctrl->torch_max_current[0];
+	op_current = fctrl->torch_op_current[0];
+
+	snprintf(buf, 50, "torch_max_current[0]=%d, torch_op_current[0]=%d\n", max_current, op_current);
+	rc = simple_read_from_buffer(page, size, ppos, buf, strlen(buf));
+
+	return rc;
+}
+static ssize_t asus_flash_touchlight_file_write(struct file *filp, const char __user * buff, size_t len, loff_t *off)
+{
+	int rc = 0, i = 0;
+	char temp[10] = {0};
+	struct msm_flash_ctrl_t *fctrl = asus_flash_ctrl;
+	struct msm_flash_cfg_data_t flash_data;
+	struct msm_flash_init_info_t flash_init_info;
+	int torch_rate, max_current;
+
+	CDBG("Enter\n");
+
+	if (!fctrl)
+		return -EPROBE_DEFER;
+
+	rc = copy_from_user(temp, buff, (len > 4)? 4:len);
+	if (rc) {
+		pr_err("<%s> copy_from_user failed.\n", __func__);
+		return -EPERM;
+	}
+	pr_err("copy_from_user temp = '%s'\n", temp);
+
+	torch_rate = (int)simple_strtol(temp, NULL, 10);
+	pr_err("torch_rate = %d\n", torch_rate);
+
+	if (torch_rate <= 0) {		
+		/* off */
+		flash_data.cfg_type = CFG_FLASH_OFF;
+		rc = msm_flash_config(fctrl, &flash_data);
+		if (rc) {
+			pr_err("msm_flash_config 'CFG_FLASH_OFF' failed !\n");
+			return rc;
+		}
+       flashlight_status = 0;
+		if (fctrl->flash_state != MSM_CAMERA_FLASH_RELEASE) {
+			/* release */
+			flash_data.cfg_type = CFG_FLASH_RELEASE;
+			rc = msm_flash_config(fctrl, &flash_data);
+			if (rc) {
+				pr_err("msm_flash_config 'CFG_FLASH_RELEASE' failed !\n");
+				return rc;
+			}
+          
+		} else {
+			pr_err("FLASH is already 'RELEASE' !\n");
+		}
+	} else {
+		if (torch_rate > 99)
+			torch_rate = 99;
+
+		if (fctrl->flash_state != MSM_CAMERA_FLASH_INIT) {
+			/* init */
+			flash_data.cfg_type = CFG_FLASH_INIT;
+			for (i = 0; i < MAX_LED_TRIGGERS; i++) {
+				flash_data.flash_current[i] = 0;
+				flash_data.flash_duration[i] = 0;
+			}
+			flash_data.cfg.flash_init_info = &flash_init_info;
+			flash_data.cfg.flash_init_info->flash_driver_type = FLASH_DRIVER_DEFAULT;
+			rc = msm_flash_config(fctrl, &flash_data);
+			if (rc) {
+				pr_err("msm_flash_config 'CFG_FLASH_INIT' failed !\n");
+				return rc;
+			}
+		} else {
+			pr_err("FLASH is already 'INIT' !\n");
+		}
+
+		/* low */
+		flash_data.cfg_type = CFG_FLASH_LOW;
+		for (i = 0; i < MAX_LED_TRIGGERS; i++) {
+			max_current = fctrl->torch_max_current[i];
+			//flash_data.flash_current[i] = max_current;
+			//flash_data.flash_duration[i] = 0;
+
+			fctrl->torch_op_current[i] = (uint32_t)(torch_rate * max_current)/100;
+			pr_err("fctrl->torch_op_current[%d] = %d,max_current = %d\n", i, fctrl->torch_op_current[i],max_current);
+		}
+		
+		rc = msm_flash_config(fctrl, &flash_data);
+		if (rc) {
+			pr_err("msm_flash_config 'CFG_FLASH_LOW' failed !\n");
+			return rc;
+		}
+       flashlight_status = 1;
+	}
+         
+	CDBG("Exit\n");
+	return len;
+}
+static const struct file_operations asus_touchlight_file_fops = {
+	.owner = THIS_MODULE,
+	.read = asus_flash_touchlight_file_read,
+	.write = asus_flash_touchlight_file_write,
+};
+
+static const struct file_operations asus_flash_status_fops = {
+	.owner = THIS_MODULE,
+	.read = asus_flash_status_fops_read,
+};
+
+
+static void asus_touchlight_file_init_node(void) {
+	struct proc_dir_entry *proc_entry = NULL;
+
+	proc_entry = proc_create(ASUS_TORCHLIGHT_FILE_NODE, 0666, NULL, &asus_touchlight_file_fops);
+	if (proc_entry == NULL) {
+		pr_err("wangs: Can't create proc entry /proc/%s !", ASUS_TORCHLIGHT_FILE_NODE);
+		return;
+	}
+	
+	proc_entry = proc_create(ASUS_FLASHLIGHT_STATUS_NODE, 0644, NULL, &asus_flash_status_fops);
+	if (proc_entry == NULL) {
+		pr_err("wangs: Can't create proc entry /proc/%s !", ASUS_FLASHLIGHT_STATUS_NODE);
+		return;
+	}
+}
+static void asus_touchlight_file_deinit_node(void) {
+	remove_proc_entry(ASUS_TORCHLIGHT_FILE_NODE, NULL);
+	remove_proc_entry(ASUS_FLASHLIGHT_STATUS_NODE, NULL);
+}
+
+#endif
+/* create asus proc node for flashlight end */
 
 static int msm_camera_flash_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
@@ -1274,7 +1456,12 @@ static int32_t msm_flash_platform_probe(struct platform_device *pdev)
 	if (flash_ctrl->flash_driver_type == FLASH_DRIVER_PMIC)
 		rc = msm_torch_create_classdev(pdev, flash_ctrl);
 
-	CDBG("probe success\n");
+#ifdef AUSU_FLASHLIGHT_ADJUST_PROC_SUPPORT 
+    asus_touchlight_file_init_node();
+    asus_flash_ctrl = flash_ctrl;
+#endif
+
+	pr_err("flash]probe success\n");
 	return rc;
 }
 
@@ -1323,6 +1510,9 @@ static int __init msm_flash_init_module(void)
 static void __exit msm_flash_exit_module(void)
 {
 	platform_driver_unregister(&msm_flash_platform_driver);
+    #ifdef AUSU_FLASHLIGHT_ADJUST_PROC_SUPPORT 
+	asus_touchlight_file_deinit_node();
+#endif
 	i2c_del_driver(&msm_flash_i2c_driver);
 	return;
 }
